@@ -9,6 +9,7 @@ public class GameInterfaceFrame extends JFrame {
         setBounds(300, 80, 1000, 750);
         contain = new GameInterfacePanel();
         add(contain);
+        addKeyListener(contain);
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
