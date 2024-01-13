@@ -134,16 +134,17 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
     @Override
     public void keyPressed(KeyEvent e) {
         char key = e.getKeyChar();
-        if (key == 'w' && myTank.getY() > 0) {
+        if (key == 'w') {
+
             myTank.moveUp();
             myTank.setDirection(Tank.MOVE_UP);
-        } else if (key == 'a' && myTank.getX() > 0) {
+        } else if (key == 'a') {
             myTank.moveLeft();
             myTank.setDirection(Tank.MOVE_LEFT);
-        } else if (key == 's' && myTank.getY() + 60 < getHeight()) {
+        } else if (key == 's') {
             myTank.moveDown();
             myTank.setDirection(Tank.MOVE_DOWN);
-        } else if (key == 'd' && myTank.getX() + 60 < getWidth()) {
+        } else if (key == 'd') {
             myTank.moveRight();
             myTank.setDirection(Tank.MOVE_RIGHT);
         } else if (key == 'j') {
@@ -189,7 +190,7 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
                         }
                     }
                 }
-            } catch (ArrayIndexOutOfBoundsException e){
+            } catch (ArrayIndexOutOfBoundsException e) {
                 //System.out.print("1");
             }
         }
@@ -221,10 +222,10 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
     public void drawBomb(Graphics g, Bomb bomb) {
         int life = bomb.getLife();
         g.setColor(new Color(255, 124, 122));
-        if (life >= 600) {
+        if (life >= 666) {
             g.fillOval(bomb.getX(), bomb.getY(), 50, 50);
             bomb.lifeDown();
-        } else if (life >= 300d) {
+        } else if (life >= 333) {
             g.fillOval(bomb.getX(), bomb.getY(), 25, 25);
             bomb.lifeDown();
         } else if (life >= 0) {
