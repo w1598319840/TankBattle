@@ -1,7 +1,7 @@
 public class Bomb {
     //用于做出在坦克被击中之后，的爆炸效果
     private int x,y;
-    private int life = 900; //爆炸的持续时间
+    private int life = 1000; //爆炸的持续时间
     private boolean isLive = true;//炸弹是否还存活
 
     public Bomb(int x, int y) {

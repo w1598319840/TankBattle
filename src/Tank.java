@@ -20,19 +20,27 @@ public class Tank {
     }
 
     public void moveUp() {
-        y = y - speed;
+        if(getY() > 0){
+            y = y - speed;
+        }
     }
 
     public void moveDown() {
-        y = y + speed;
+        if(getY() + 60 < 711){
+            y = y + speed;
+        }
     }
 
     public void moveLeft() {
-        x = x - speed;
+        if(getX() > 0){
+            x = x - speed;
+        }
     }
 
     public void moveRight() {
-        x = x + speed;
+        if(getX() + 60 < 984){
+            x = x + speed;
+        }
     }
 
     public int getX() {

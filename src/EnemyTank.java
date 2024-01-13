@@ -22,7 +22,9 @@ public class EnemyTank extends Tank implements Runnable {
         while (isLive()) {
             //现根据坦克现在的方向移动随机距离
             int direction = getDirection();
-            int distance = (int) (Math.random() * 5);
+            int distance = (int) (Math.random() * 6);
+            int x = getX();
+            int y = getY();
             if (direction == Tank.MOVE_UP) {
                 for (int i = 0; i < distance; i++) {
                     moveUp();
