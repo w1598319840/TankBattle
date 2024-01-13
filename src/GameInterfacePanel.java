@@ -2,9 +2,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.ArrayList;
 import java.util.Vector;
 
-public class GameInterfacePanel extends JPanel implements KeyListener,Runnable {
+
+public class GameInterfacePanel extends JPanel implements KeyListener, Runnable {
     //游戏界面的Panel
     private MyTank myTank; //一个自己的坦克，直接实例化
     private Vector<EnemyTank> enemyTanks = new Vector<>();// 多个敌方坦克，用 Vector 存储(因为后续要考虑多线程)
@@ -12,12 +14,19 @@ public class GameInterfacePanel extends JPanel implements KeyListener,Runnable {
 
 
     public GameInterfacePanel() {
-        myTank = new MyTank(100, 600, Tank.MOVE_UP, Tank.MY_TANK, Tank.TANK_DEFUALT_SPEED);//我的坦克
+        //添加我的坦克
+        myTank = new MyTank(100, 600, Tank.MOVE_UP, Tank.MY_TANK, Tank.TANK_DEFUALT_SPEED);
+        //添加敌人坦克
         for (int i = 0; i < 3; i++) {
-            enemyTanks.add(new EnemyTank(200 * (i + 1), 0, Tank.MOVE_DOWN, Tank.ENEMY_TANK, Tank.TANK_DEFUALT_SPEED));
+            EnemyTank enemyTank = new EnemyTank
+                    (200 * (i + 1), 0, Tank.MOVE_DOWN, Tank.ENEMY_TANK, Tank.TANK_DEFUALT_SPEED);
+            enemyTanks.add(enemyTank);
         }
+        //添加友军坦克
         for (int i = 0; i < 1; i++) {
-            friendlyTanks.add(new FriendlyTank(400 * (i + 1), 600, Tank.MOVE_UP, Tank.FRIENDLY_TANK, Tank.TANK_DEFUALT_SPEED));
+            FriendlyTank friendlyTank = new FriendlyTank
+                    (400 * (i + 1), 600, Tank.MOVE_UP, Tank.FRIENDLY_TANK, Tank.TANK_DEFUALT_SPEED);
+            friendlyTanks.add(friendlyTank);
         }
     }
 
@@ -37,9 +46,16 @@ public class GameInterfacePanel extends JPanel implements KeyListener,Runnable {
         for (FriendlyTank friendlyTank : friendlyTanks) {
             drawTank(g, friendlyTank.getX(), friendlyTank.getY(), friendlyTank.getDirection(), friendlyTank.getType());
         }
-        //画出子弹
-        drawBullet(g, myTank.getBullets());
-
+        //画出我的子弹
+        drawBullets(g, myTank.getBullets());
+        //画出敌方子弹
+        for (EnemyTank enemyTank : enemyTanks) {
+            drawBullets(g, enemyTank.getBullets());
+        }
+        //画出友方子弹
+        for (FriendlyTank friendlyTank : friendlyTanks) {
+            drawBullets(g, friendlyTank.getBullets());
+        }
     }
 
     /**
@@ -118,22 +134,25 @@ public class GameInterfacePanel extends JPanel implements KeyListener,Runnable {
 
     }
 
-    public void drawBullet(Graphics g, Vector<Bullet> bullets) {
+    public void drawBullets(Graphics g, Vector<Bullet> bullets) {
+        ArrayList<Bullet> removeBullets = new ArrayList<>();// 要删除的子弹的集合
         if (bullets == null) {
             return;
         }
-            for (Bullet bullet : bullets) {
-                if (bullet != null && bullet.isLive()) {
-                    g.setColor(new Color(255, 255, 255));
-                    g.drawRect(bullet.getX(), bullet.getY(), 1, 1);
-                }
+        for (Bullet bullet : bullets) {
+            if (bullet != null && bullet.isLive()) {
+                g.setColor(new Color(255, 255, 255));
+                g.drawRect(bullet.getX(), bullet.getY(), 1, 1);
+            } else if (bullet != null && !(bullet.isLive())) {
+                removeBullets.add(bullet);
             }
-
+        }
+        bullets.removeAll(removeBullets);
     }
 
     @Override
     public void run() {
-        while (true){
+        while (true) {
             repaint(15);
         }
     }

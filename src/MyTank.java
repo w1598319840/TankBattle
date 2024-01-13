@@ -22,7 +22,7 @@ public class MyTank extends Tank {
             initBulletX += 60;
             initBulletY += 20;
         }
-        Bullet bullet = new Bullet(initBulletX, initBulletY, getDirection());
+        Bullet bullet = new Bullet(initBulletX, initBulletY, getDirection(),Bullet.BULLET_DEFUALT_SPEED);
         bullet.start();
         bullets.add(bullet);
     }
