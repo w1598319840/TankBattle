@@ -2,7 +2,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.util.ArrayList;
 import java.util.Vector;
 
 
@@ -11,22 +10,24 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
     private MyTank myTank; //一个自己的坦克，直接实例化
     private Vector<EnemyTank> enemyTanks = new Vector<>();// 多个敌方坦克，用 Vector 存储(因为后续要考虑多线程)
     private Vector<FriendlyTank> friendlyTanks = new Vector<>();
-
+    private Vector<Bomb> bombs = new Vector<>();
 
     public GameInterfacePanel() {
         //添加我的坦克
-        myTank = new MyTank(100, 600, Tank.MOVE_UP, Tank.MY_TANK, Tank.TANK_DEFUALT_SPEED);
+        myTank = new MyTank(100, 600, Tank.MOVE_UP, Tank.MY_TANK, Tank.TANK_DEFAULT_SPEED);
         //添加敌人坦克
         for (int i = 0; i < 3; i++) {
             EnemyTank enemyTank = new EnemyTank
-                    (200 * (i + 1), 0, Tank.MOVE_DOWN, Tank.ENEMY_TANK, Tank.TANK_DEFUALT_SPEED);
+                    (200 * (i + 1), 0, Tank.MOVE_DOWN, Tank.ENEMY_TANK, Tank.TANK_DEFAULT_SPEED);
             enemyTanks.add(enemyTank);
+            new Thread(enemyTank).start();
         }
         //添加友军坦克
         for (int i = 0; i < 1; i++) {
             FriendlyTank friendlyTank = new FriendlyTank
-                    (400 * (i + 1), 600, Tank.MOVE_UP, Tank.FRIENDLY_TANK, Tank.TANK_DEFUALT_SPEED);
+                    (400 * (i + 1), 600, Tank.MOVE_UP, Tank.FRIENDLY_TANK, Tank.TANK_DEFAULT_SPEED);
             friendlyTanks.add(friendlyTank);
+            new Thread(friendlyTank).start();
         }
     }
 
@@ -39,22 +40,43 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
         //画自己的坦克
         drawTank(g, myTank.getX(), myTank.getY(), myTank.getDirection(), myTank.getType());
         //画敌人的坦克
-        for (EnemyTank enemyTank : enemyTanks) {
-            drawTank(g, enemyTank.getX(), enemyTank.getY(), enemyTank.getDirection(), enemyTank.getType());
+        for (int i = 0; i < enemyTanks.size(); i++) {
+            EnemyTank enemyTank = enemyTanks.get(i);
+            if (enemyTank.isLive()) {
+                drawTank(g, enemyTank.getX(), enemyTank.getY(), enemyTank.getDirection(), enemyTank.getType());
+            } else {
+                enemyTanks.remove(enemyTank);
+            }
         }
         //画出友方坦克
-        for (FriendlyTank friendlyTank : friendlyTanks) {
-            drawTank(g, friendlyTank.getX(), friendlyTank.getY(), friendlyTank.getDirection(), friendlyTank.getType());
+        for (int i = 0; i < friendlyTanks.size(); i++) {
+            FriendlyTank friendlyTank = friendlyTanks.get(i);
+            if (friendlyTank.isLive()) {
+                drawTank(g, friendlyTank.getX(), friendlyTank.getY(), friendlyTank.getDirection(), friendlyTank.getType());
+            } else {
+                friendlyTanks.remove(friendlyTank);
+            }
         }
         //画出我的子弹
         drawBullets(g, myTank.getBullets());
         //画出敌方子弹
-        for (EnemyTank enemyTank : enemyTanks) {
+        for (int i = 0; i < enemyTanks.size(); i++) {
+            EnemyTank enemyTank = enemyTanks.get(i);
             drawBullets(g, enemyTank.getBullets());
         }
         //画出友方子弹
-        for (FriendlyTank friendlyTank : friendlyTanks) {
+        for (int i = 0; i < friendlyTanks.size(); i++) {
+            FriendlyTank friendlyTank = friendlyTanks.get(i);
             drawBullets(g, friendlyTank.getBullets());
+        }
+        //画出爆炸效果
+        for (int i = 0; i < bombs.size(); i++) {
+            Bomb bomb = bombs.get(i);
+            if (bomb.isLive()) {
+                drawBomb(g, bomb);
+            } else {
+                bombs.remove(bomb);
+            }
         }
     }
 
@@ -135,25 +157,81 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
     }
 
     public void drawBullets(Graphics g, Vector<Bullet> bullets) {
-        ArrayList<Bullet> removeBullets = new ArrayList<>();// 要删除的子弹的集合
         if (bullets == null) {
             return;
         }
-        for (Bullet bullet : bullets) {
+        for (int i = 0; i < bullets.size(); i++) {
+            Bullet bullet = bullets.get(i);
             if (bullet != null && bullet.isLive()) {
                 g.setColor(new Color(255, 255, 255));
                 g.drawRect(bullet.getX(), bullet.getY(), 1, 1);
             } else if (bullet != null && !(bullet.isLive())) {
-                removeBullets.add(bullet);
+                bullets.remove(bullet);
             }
         }
-        bullets.removeAll(removeBullets);
     }
 
     @Override
     public void run() {
         while (true) {
-            repaint(15);
+            repaint(30);
+            //可以在这里判断子弹又没有击中坦克
+            Vector<Bullet> bullets = myTank.getBullets();
+            try {
+                if (bullets != null) {
+                    for (int i = 0; i < bullets.size(); i++) {
+                        Bullet bullet = bullets.get(i);
+                        if (bullet.isLive()) {
+                            for (int j = 0; j < enemyTanks.size(); j++) {
+                                EnemyTank enemyTank = enemyTanks.get(j);
+                                hitTank(bullet, enemyTank);
+                            }
+                        }
+                    }
+                }
+            } catch (ArrayIndexOutOfBoundsException e){
+                //System.out.print("1");
+            }
+        }
+    }
+
+    //判断子弹击中坦克
+    public void hitTank(Bullet bullet, Tank tank) {
+        int direction = tank.getDirection();
+        int bulletX = bullet.getX();
+        int bulletY = bullet.getY();
+        int tankX = tank.getX();
+        int tankY = tank.getY();
+        //下面判断子弹是否在坦克范围内
+        if (direction == Tank.MOVE_UP || direction == Tank.MOVE_DOWN) {
+            if (bulletX > tankX && bulletX < tankX + 40 && bulletY > tankY && bulletY < tankY + 60) {
+                bullet.setLive(false);
+                tank.setLive(false);
+                bombs.add(new Bomb(tankX + 10, tankY + 10));
+            }
+        } else if (direction == Tank.MOVE_LEFT || direction == Tank.MOVE_RIGHT) {
+            if (bulletX > tankX && bulletX < tankX + 60 && bulletY > tankY && bulletY < tankY + 40) {
+                bullet.setLive(false);
+                tank.setLive(false);
+                bombs.add(new Bomb(tankX + 10, tankY + 10));
+            }
+        }
+    }
+
+    public void drawBomb(Graphics g, Bomb bomb) {
+        int life = bomb.getLife();
+        g.setColor(new Color(255, 124, 122));
+        if (life >= 600) {
+            g.fillOval(bomb.getX(), bomb.getY(), 50, 50);
+            bomb.lifeDown();
+        } else if (life >= 300d) {
+            g.fillOval(bomb.getX(), bomb.getY(), 25, 25);
+            bomb.lifeDown();
+        } else if (life >= 0) {
+            g.fillOval(bomb.getX(), bomb.getY(), 10, 10);
+            bomb.lifeDown();
+        } else {
+            bomb.setLive(false);
         }
     }
 }
