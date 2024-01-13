@@ -10,7 +10,7 @@ public class GameInterfaceFrame extends JFrame {
         contain = new GameInterfacePanel();
         add(contain);
         addKeyListener(contain);
-
+        new Thread(contain).start();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
     }
