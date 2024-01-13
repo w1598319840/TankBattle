@@ -8,6 +8,7 @@ import java.util.Vector;
 public class GameInterfacePanel extends JPanel implements KeyListener, Runnable {
     //游戏界面的Panel
     private MyTank myTank; //一个自己的坦克，直接实例化
+    Vector<MyTank> myTanks = new Vector<>();
     private Vector<EnemyTank> enemyTanks = new Vector<>();// 多个敌方坦克，用 Vector 存储(因为后续要考虑多线程)
     private Vector<FriendlyTank> friendlyTanks = new Vector<>();
     private Vector<Bomb> bombs = new Vector<>();
@@ -15,6 +16,7 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
     public GameInterfacePanel() {
         //添加我的坦克
         myTank = new MyTank(100, 600, Tank.MOVE_UP, Tank.MY_TANK, Tank.TANK_DEFAULT_SPEED);
+        myTanks.add(myTank);
         //添加敌人坦克
         for (int i = 0; i < 3; i++) {
             EnemyTank enemyTank = new EnemyTank
@@ -23,9 +25,9 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
             new Thread(enemyTank).start();
         }
         //添加友军坦克
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < 3; i++) {
             FriendlyTank friendlyTank = new FriendlyTank
-                    (400 * (i + 1), 600, Tank.MOVE_UP, Tank.FRIENDLY_TANK, Tank.TANK_DEFAULT_SPEED);
+                    (200 * (i + 1), 600, Tank.MOVE_UP, Tank.FRIENDLY_TANK, Tank.TANK_DEFAULT_SPEED);
             friendlyTanks.add(friendlyTank);
             new Thread(friendlyTank).start();
         }
@@ -38,7 +40,9 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
         g.fillRect(0, 0, 1000, 750);//绘制一个填充的矩形，颜色默认是黑色
         //把整个界面都改成黑色，黑色的就是游戏区域
         //画自己的坦克
-        drawTank(g, myTank.getX(), myTank.getY(), myTank.getDirection(), myTank.getType());
+        if (myTank.isLive()) {
+            drawTank(g, myTank.getX(), myTank.getY(), myTank.getDirection(), myTank.getType());
+        }
         //画敌人的坦克
         for (int i = 0; i < enemyTanks.size(); i++) {
             EnemyTank enemyTank = enemyTanks.get(i);
@@ -135,7 +139,6 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
     public void keyPressed(KeyEvent e) {
         char key = e.getKeyChar();
         if (key == 'w') {
-
             myTank.moveUp();
             myTank.setDirection(Tank.MOVE_UP);
         } else if (key == 'a') {
@@ -148,7 +151,9 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
             myTank.moveRight();
             myTank.setDirection(Tank.MOVE_RIGHT);
         } else if (key == 'j') {
-            myTank.shot();
+            if (myTank.getBullets().size() <= 4) {
+                myTank.shot();
+            }
         }
     }
 
@@ -177,45 +182,70 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
         while (true) {
             repaint(30);
             //可以在这里判断子弹又没有击中坦克
-            Vector<Bullet> bullets = myTank.getBullets();
-            try {
-                if (bullets != null) {
-                    for (int i = 0; i < bullets.size(); i++) {
-                        Bullet bullet = bullets.get(i);
-                        if (bullet.isLive()) {
-                            for (int j = 0; j < enemyTanks.size(); j++) {
-                                EnemyTank enemyTank = enemyTanks.get(j);
-                                hitTank(bullet, enemyTank);
-                            }
-                        }
-                    }
-                }
-            } catch (ArrayIndexOutOfBoundsException e) {
-                //System.out.print("1");
+            //判断自己的坦克发射的子弹有没有击中敌方
+            Vector<Bullet> myTankBullets = myTank.getBullets();
+            hitTank(myTankBullets, enemyTanks);
+            //判断友军的坦克发射的子弹有没有击中敌方
+            for (int i = 0; i < friendlyTanks.size(); i++) {
+                FriendlyTank friendlyTank = friendlyTanks.get(i);
+                Vector<Bullet> friendlyTankBullets = friendlyTank.getBullets();
+                hitTank(friendlyTankBullets, enemyTanks);
+            }
+            //判断敌方的坦克发射的子弹有没有击中自己
+            for (int i = 0; i < enemyTanks.size(); i++) {
+                EnemyTank enemyTank = enemyTanks.get(i);
+                Vector<Bullet> enemyTankBullets = enemyTank.getBullets();
+                hitTank(enemyTankBullets, myTanks);
+            }
+            //判断敌方的坦克发射的子弹有没有击中友军
+            for (int i = 0; i < enemyTanks.size(); i++) {
+                EnemyTank enemyTank = enemyTanks.get(i);
+                Vector<Bullet> enemyTankBullets = enemyTank.getBullets();
+                hitTank(enemyTankBullets, friendlyTanks);
             }
         }
     }
 
-    //判断子弹击中坦克
-    public void hitTank(Bullet bullet, Tank tank) {
-        int direction = tank.getDirection();
-        int bulletX = bullet.getX();
-        int bulletY = bullet.getY();
-        int tankX = tank.getX();
-        int tankY = tank.getY();
-        //下面判断子弹是否在坦克范围内
-        if (direction == Tank.MOVE_UP || direction == Tank.MOVE_DOWN) {
-            if (bulletX > tankX && bulletX < tankX + 40 && bulletY > tankY && bulletY < tankY + 60) {
-                bullet.setLive(false);
-                tank.setLive(false);
-                bombs.add(new Bomb(tankX + 10, tankY + 10));
+    /**
+     * @param bullets 要判断哪些子弹
+     * @param tanks   这些子弹可以击中哪些坦克
+     */
+    public void hitTank(Vector<Bullet> bullets, Vector<? extends Tank> tanks) {
+        //判断子弹是否击中坦克
+        try {
+            if (bullets != null) {
+                for (int i = 0; i < bullets.size(); i++) {
+                    Bullet bullet = bullets.get(i);
+                    if (bullet.isLive()) {
+                        for (int j = 0; j < tanks.size(); j++) {
+                            Tank tank = tanks.get(j);
+                            int direction = tank.getDirection();
+                            int bulletX = bullet.getX();
+                            int bulletY = bullet.getY();
+                            int tankX = tank.getX();
+                            int tankY = tank.getY();
+                            //下面判断子弹是否在坦克范围内
+                            if (direction == Tank.MOVE_UP || direction == Tank.MOVE_DOWN) {
+                                if (bulletX > tankX && bulletX < tankX + 40 && bulletY > tankY && bulletY < tankY + 60) {
+                                    bullet.setLive(false);
+                                    tank.setLive(false);
+                                    bombs.add(new Bomb(tankX + 10, tankY + 10));
+                                }
+                            } else if (direction == Tank.MOVE_LEFT || direction == Tank.MOVE_RIGHT) {
+                                if (bulletX > tankX && bulletX < tankX + 60 && bulletY > tankY && bulletY < tankY + 40) {
+                                    bullet.setLive(false);
+                                    tank.setLive(false);
+                                    bombs.add(new Bomb(tankX + 10, tankY + 10));
+                                }
+                            }
+                        }
+                    }
+                }
             }
-        } else if (direction == Tank.MOVE_LEFT || direction == Tank.MOVE_RIGHT) {
-            if (bulletX > tankX && bulletX < tankX + 60 && bulletY > tankY && bulletY < tankY + 40) {
-                bullet.setLive(false);
-                tank.setLive(false);
-                bombs.add(new Bomb(tankX + 10, tankY + 10));
-            }
+        } catch (ArrayIndexOutOfBoundsException e) {
+            //多线程之中很容易出现 ArrayIndexOutOfBoundsException 的错误
+            //但是我现在还不知道如何解决
+            //System.out.print("ArrayIndexOutOfBoundsException");
         }
     }
 

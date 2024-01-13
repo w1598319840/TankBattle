@@ -1,7 +1,11 @@
+import java.util.Vector;
+
 public class Tank {
     //作为所有坦克(包括友方坦克和地方坦克)的父类
     private int x, y, direction, type, speed;
     private boolean isLive = true;//用于标记坦克是否存活
+    private Vector<Bullet> bullets = new Vector<>();//坦克的子弹数组
+
     public static final int TANK_DEFAULT_SPEED = 5;
     public static final int MOVE_UP = 0;
     public static final int MOVE_LEFT = 1;
@@ -17,6 +21,25 @@ public class Tank {
         this.direction = direction;
         this.type = type;
         this.speed = speed;
+    }
+
+    public void shot() {
+        int initBulletX = getX() - 1;
+        int initBulletY = getY() - 1;
+        if (getDirection() == Tank.MOVE_UP) {
+            initBulletX += 20;
+        } else if (getDirection() == Tank.MOVE_LEFT) {
+            initBulletY += 20;
+        } else if (getDirection() == Tank.MOVE_DOWN) {
+            initBulletX += 20;
+            initBulletY += 60;
+        } else if (getDirection() == Tank.MOVE_RIGHT) {
+            initBulletX += 60;
+            initBulletY += 20;
+        }
+        Bullet bullet = new Bullet(initBulletX, initBulletY, getDirection(),Bullet.BULLET_DEFUALT_SPEED);
+        bullet.start();
+        bullets.add(bullet);
     }
 
     public void moveUp() {
@@ -89,5 +112,13 @@ public class Tank {
 
     public void setLive(boolean live) {
         isLive = live;
+    }
+
+    public Vector<Bullet> getBullets() {
+        return bullets;
+    }
+
+    public void setBullets(Vector<Bullet> bullets) {
+        this.bullets = bullets;
     }
 }

@@ -3,20 +3,9 @@ import java.util.Vector;
 public class EnemyTank extends Tank implements Runnable {
     //敌人的坦克
     //由于需要他自己移动，因此需要当作一个线程
-    Vector<Bullet> bullets = new Vector<>();
-
     public EnemyTank(int x, int y, int direction, int type, int speed) {
         super(x, y, direction, type, speed);
     }
-
-    public Vector<Bullet> getBullets() {
-        return bullets;
-    }
-
-    public void setBullets(Vector<Bullet> bullets) {
-        this.bullets = bullets;
-    }
-
     @Override
     public void run() {
         while (isLive()) {
@@ -73,7 +62,11 @@ public class EnemyTank extends Tank implements Runnable {
             } else if (newDirection >= 7) {
                 setDirection(Tank.MOVE_UP);
             }
+            //控制随机发射子弹
+            int isShot = (int) (Math.random() * 3);
+            if(isShot == 0){
+                shot();
+            }
         }
-
     }
 }

@@ -2,20 +2,9 @@ import java.util.Vector;
 
 public class FriendlyTank extends Tank implements Runnable {
     //友军坦克
-    Vector<Bullet> bullets = new Vector<>();
-
     public FriendlyTank(int x, int y, int direction, int type, int speed) {
         super(x, y, direction, type, speed);
     }
-
-    public Vector<Bullet> getBullets() {
-        return bullets;
-    }
-
-    public void setBullets(Vector<Bullet> bullets) {
-        this.bullets = bullets;
-    }
-
     public void run() {
         while (isLive()) {
             //现根据坦克现在的方向移动随机距离
@@ -69,7 +58,11 @@ public class FriendlyTank extends Tank implements Runnable {
             } else if (newDirection >= 7) {
                 setDirection(Tank.MOVE_DOWN);
             }
+            //控制随机发射子弹
+            int isShot = (int) (Math.random() * 3);
+            if(isShot == 0){
+                shot();
+            }
         }
-
     }
 }
