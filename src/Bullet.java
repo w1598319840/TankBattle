@@ -1,13 +1,15 @@
 public class Bullet extends Thread {
     //子弹类
-    private int x, y, speed = 10, direction;
+    private int x, y, speed, direction;
     private boolean isLive = true;//用于标记子弹是否存活
+    public static final int BULLET_DEFUALT_SPEED = 8;
 
 
-    public Bullet(int x, int y, int direction) {
+    public Bullet(int x, int y, int direction, int speed) {
         this.x = x;
         this.y = y;
         this.direction = direction;
+        this.speed = speed;
     }
 
     @Override
