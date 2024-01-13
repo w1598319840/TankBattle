@@ -32,6 +32,7 @@ public class Bullet extends Thread {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+            //System.out.println("子弹的位置 = " + x + " " + y);
         }
     }
 
