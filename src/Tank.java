@@ -1,7 +1,7 @@
 public class Tank {
     //作为所有坦克(包括友方坦克和地方坦克)的父类
     private int x, y, direction, type, speed;
-    public static final int DEFUALT_SPEED = 5;
+    public static final int TANK_DEFUALT_SPEED = 5;
     public static final int MOVE_UP = 0;
     public static final int MOVE_LEFT = 1;
     public static final int MOVE_DOWN = 2;

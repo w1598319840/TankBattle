@@ -4,7 +4,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.Vector;
 
-public class GameInterfacePanel extends JPanel implements KeyListener {
+public class GameInterfacePanel extends JPanel implements KeyListener,Runnable {
     //游戏界面的Panel
     private MyTank myTank; //一个自己的坦克，直接实例化
     private Vector<EnemyTank> enemyTanks = new Vector<>();// 多个敌方坦克，用 Vector 存储(因为后续要考虑多线程)
@@ -12,12 +12,12 @@ public class GameInterfacePanel extends JPanel implements KeyListener {
 
 
     public GameInterfacePanel() {
-        myTank = new MyTank(100, 600, Tank.MOVE_UP, Tank.MY_TANK, Tank.DEFUALT_SPEED);//我的坦克
+        myTank = new MyTank(100, 600, Tank.MOVE_UP, Tank.MY_TANK, Tank.TANK_DEFUALT_SPEED);//我的坦克
         for (int i = 0; i < 3; i++) {
-            enemyTanks.add(new EnemyTank(200 * (i + 1), 0, Tank.MOVE_DOWN, Tank.ENEMY_TANK, Tank.DEFUALT_SPEED));
+            enemyTanks.add(new EnemyTank(200 * (i + 1), 0, Tank.MOVE_DOWN, Tank.ENEMY_TANK, Tank.TANK_DEFUALT_SPEED));
         }
         for (int i = 0; i < 1; i++) {
-            friendlyTanks.add(new FriendlyTank(400 * (i + 1), 600, Tank.MOVE_UP, Tank.FRIENDLY_TANK, Tank.DEFUALT_SPEED));
+            friendlyTanks.add(new FriendlyTank(400 * (i + 1), 600, Tank.MOVE_UP, Tank.FRIENDLY_TANK, Tank.TANK_DEFUALT_SPEED));
         }
     }
 
@@ -37,6 +37,9 @@ public class GameInterfacePanel extends JPanel implements KeyListener {
         for (FriendlyTank friendlyTank : friendlyTanks) {
             drawTank(g, friendlyTank.getX(), friendlyTank.getY(), friendlyTank.getDirection(), friendlyTank.getType());
         }
+        //画出子弹
+        drawBullet(g, myTank.getBullets());
+
     }
 
     /**
@@ -93,24 +96,45 @@ public class GameInterfacePanel extends JPanel implements KeyListener {
     @Override
     public void keyPressed(KeyEvent e) {
         char key = e.getKeyChar();
-        if (key == 'w') {
+        if (key == 'w' && myTank.getY() > 0) {
             myTank.moveUp();
             myTank.setDirection(Tank.MOVE_UP);
-        } else if (key == 'a') {
+        } else if (key == 'a' && myTank.getX() > 0) {
             myTank.moveLeft();
             myTank.setDirection(Tank.MOVE_LEFT);
-        } else if (key == 's') {
+        } else if (key == 's' && myTank.getY() + 60 < getHeight()) {
             myTank.moveDown();
             myTank.setDirection(Tank.MOVE_DOWN);
-        } else if (key == 'd') {
+        } else if (key == 'd' && myTank.getX() + 60 < getWidth()) {
             myTank.moveRight();
             myTank.setDirection(Tank.MOVE_RIGHT);
+        } else if (key == 'j') {
+            myTank.shot();
         }
-        repaint();
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
 
+    }
+
+    public void drawBullet(Graphics g, Vector<Bullet> bullets) {
+        if (bullets == null) {
+            return;
+        }
+            for (Bullet bullet : bullets) {
+                if (bullet != null && bullet.isLive()) {
+                    g.setColor(new Color(255, 255, 255));
+                    g.drawRect(bullet.getX(), bullet.getY(), 1, 1);
+                }
+            }
+
+    }
+
+    @Override
+    public void run() {
+        while (true){
+            repaint(15);
+        }
     }
 }
