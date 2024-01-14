@@ -6,7 +6,7 @@ public class GameInterfaceFrame extends JFrame {
 
     public GameInterfaceFrame(String title) {
         super(title);
-        setBounds(300, 80, 1000, 750);
+        setBounds(200, 80, 1300, 750);
         contain = new GameInterfacePanel();
         add(contain);
         addKeyListener(contain);

@@ -69,4 +69,13 @@ public class EnemyTank extends Tank implements Runnable {
             }
         }
     }
+
+    public static EnemyTank newEnemyTank() {
+        //生成一个敌军坦克
+        //在 x∈[100,900] y∈[100,200]的范围内生成一个友军坦克，面向上方
+        int randomX = (int) (Math.random() * 800 + 100);
+        int randomY = (int) (Math.random() * 100 + 100);
+        EnemyTank enemyTank = new EnemyTank(randomX,randomY,Tank.MOVE_DOWN,Tank.ENEMY_TANK,Tank.TANK_DEFAULT_SPEED);
+        return enemyTank;
+    }
 }

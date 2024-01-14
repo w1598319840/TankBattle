@@ -11,26 +11,13 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
     Vector<MyTank> myTanks = new Vector<>();
     private Vector<EnemyTank> enemyTanks = new Vector<>();// 多个敌方坦克，用 Vector 存储(因为后续要考虑多线程)
     private Vector<FriendlyTank> friendlyTanks = new Vector<>();
+    private Vector<Tank> allTanks = new Vector<>();
     private Vector<Bomb> bombs = new Vector<>();
 
     public GameInterfacePanel() {
         //添加我的坦克
         myTank = new MyTank(100, 600, Tank.MOVE_UP, Tank.MY_TANK, Tank.TANK_DEFAULT_SPEED);
         myTanks.add(myTank);
-        //添加敌人坦克
-        for (int i = 0; i < 3; i++) {
-            EnemyTank enemyTank = new EnemyTank
-                    (200 * (i + 1), 0, Tank.MOVE_DOWN, Tank.ENEMY_TANK, Tank.TANK_DEFAULT_SPEED);
-            enemyTanks.add(enemyTank);
-            new Thread(enemyTank).start();
-        }
-        //添加友军坦克
-        for (int i = 0; i < 3; i++) {
-            FriendlyTank friendlyTank = new FriendlyTank
-                    (200 * (i + 1), 600, Tank.MOVE_UP, Tank.FRIENDLY_TANK, Tank.TANK_DEFAULT_SPEED);
-            friendlyTanks.add(friendlyTank);
-            new Thread(friendlyTank).start();
-        }
     }
 
     @Override
@@ -38,10 +25,15 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
         super.paint(g);
         //setBackground(new Color(0,0,0));
         g.fillRect(0, 0, 1000, 750);//绘制一个填充的矩形，颜色默认是黑色
-        //把整个界面都改成黑色，黑色的就是游戏区域
+        g.setColor(new Color(140, 140, 140));
+        g.fillRect(1000, 0, 300, 750);
+        //黑色的就是游戏区域,白的是信息显示区域
+        //游戏区域信息：
         //画自己的坦克
         if (myTank.isLive()) {
             drawTank(g, myTank.getX(), myTank.getY(), myTank.getDirection(), myTank.getType());
+        } else {
+            myTanks.remove(myTank);
         }
         //画敌人的坦克
         for (int i = 0; i < enemyTanks.size(); i++) {
@@ -82,6 +74,19 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
                 bombs.remove(bomb);
             }
         }
+        //更新 allTanks 集合
+        allTanks.clear();
+        allTanks.addAll(myTanks);
+        allTanks.addAll(enemyTanks);
+        allTanks.addAll(friendlyTanks);
+        Tank.setAllTanks(allTanks);
+        //右侧提示信息：
+        //您累计击杀的坦克：
+        showHitCount(g);
+        //我的坦克的生命数
+        showMyTankLifeCount(g);
+        //友军坦克数量
+        showFriendlyTankCount(g);
     }
 
     /**
@@ -102,6 +107,7 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
         }
 
         //再根据 direction 来确定坦克的方向,从而绘画不同的坦克
+        //每个坦克正面宽度为 40， 轮长 60
         if (direction == Tank.MOVE_UP) { // 0 表示 向上
             //使用 3D 方法可以让绘画出来的坦克更有立体感
             g.fill3DRect(x, y, 10, 60, false);//左轮
@@ -138,20 +144,20 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
     @Override
     public void keyPressed(KeyEvent e) {
         char key = e.getKeyChar();
-        if (key == 'w') {
+        if (key == 'w' && myTank.isLive()) {
             myTank.moveUp();
             myTank.setDirection(Tank.MOVE_UP);
-        } else if (key == 'a') {
+        } else if (key == 'a' && myTank.isLive()) {
             myTank.moveLeft();
             myTank.setDirection(Tank.MOVE_LEFT);
-        } else if (key == 's') {
+        } else if (key == 's' && myTank.isLive()) {
             myTank.moveDown();
             myTank.setDirection(Tank.MOVE_DOWN);
-        } else if (key == 'd') {
+        } else if (key == 'd' && myTank.isLive()) {
             myTank.moveRight();
             myTank.setDirection(Tank.MOVE_RIGHT);
-        } else if (key == 'j') {
-            if (myTank.getBullets().size() <= 4) {
+        } else if (key == 'j' && myTank.isLive()) {
+            if (myTank.getBullets().size() <= 4 && myTank.isLive()) {
                 myTank.shot();
             }
         }
@@ -181,71 +187,51 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
     public void run() {
         while (true) {
             repaint(30);
-            //可以在这里判断子弹又没有击中坦克
-            //判断自己的坦克发射的子弹有没有击中敌方
-            Vector<Bullet> myTankBullets = myTank.getBullets();
-            hitTank(myTankBullets, enemyTanks);
-            //判断友军的坦克发射的子弹有没有击中敌方
-            for (int i = 0; i < friendlyTanks.size(); i++) {
-                FriendlyTank friendlyTank = friendlyTanks.get(i);
-                Vector<Bullet> friendlyTankBullets = friendlyTank.getBullets();
-                hitTank(friendlyTankBullets, enemyTanks);
-            }
-            //判断敌方的坦克发射的子弹有没有击中自己
-            for (int i = 0; i < enemyTanks.size(); i++) {
-                EnemyTank enemyTank = enemyTanks.get(i);
-                Vector<Bullet> enemyTankBullets = enemyTank.getBullets();
-                hitTank(enemyTankBullets, myTanks);
-            }
-            //判断敌方的坦克发射的子弹有没有击中友军
-            for (int i = 0; i < enemyTanks.size(); i++) {
-                EnemyTank enemyTank = enemyTanks.get(i);
-                Vector<Bullet> enemyTankBullets = enemyTank.getBullets();
-                hitTank(enemyTankBullets, friendlyTanks);
-            }
-        }
-    }
-
-    /**
-     * @param bullets 要判断哪些子弹
-     * @param tanks   这些子弹可以击中哪些坦克
-     */
-    public void hitTank(Vector<Bullet> bullets, Vector<? extends Tank> tanks) {
-        //判断子弹是否击中坦克
-        try {
-            if (bullets != null) {
-                for (int i = 0; i < bullets.size(); i++) {
-                    Bullet bullet = bullets.get(i);
-                    if (bullet.isLive()) {
-                        for (int j = 0; j < tanks.size(); j++) {
-                            Tank tank = tanks.get(j);
-                            int direction = tank.getDirection();
-                            int bulletX = bullet.getX();
-                            int bulletY = bullet.getY();
-                            int tankX = tank.getX();
-                            int tankY = tank.getY();
-                            //下面判断子弹是否在坦克范围内
-                            if (direction == Tank.MOVE_UP || direction == Tank.MOVE_DOWN) {
-                                if (bulletX > tankX && bulletX < tankX + 40 && bulletY > tankY && bulletY < tankY + 60) {
-                                    bullet.setLive(false);
-                                    tank.setLive(false);
-                                    bombs.add(new Bomb(tankX + 10, tankY + 10));
-                                }
-                            } else if (direction == Tank.MOVE_LEFT || direction == Tank.MOVE_RIGHT) {
-                                if (bulletX > tankX && bulletX < tankX + 60 && bulletY > tankY && bulletY < tankY + 40) {
-                                    bullet.setLive(false);
-                                    tank.setLive(false);
-                                    bombs.add(new Bomb(tankX + 10, tankY + 10));
-                                }
-                            }
-                        }
+            try {
+                //可以在这里判断子弹又没有击中坦克
+                //判断自己的坦克发射的子弹有没有击中敌方
+                Vector<Bullet> myTankBullets = myTank.getBullets();
+                myTank.hitTank(myTankBullets, enemyTanks, bombs);
+                //判断友军的坦克发射的子弹有没有击中敌方
+                for (int i = 0; i < friendlyTanks.size(); i++) {
+                    FriendlyTank friendlyTank = friendlyTanks.get(i);
+                    Vector<Bullet> friendlyTankBullets = friendlyTank.getBullets();
+                    friendlyTank.hitTank(friendlyTankBullets, enemyTanks, bombs);
+                }
+                //判断敌方的坦克发射的子弹有没有击中自己
+                for (int i = 0; i < enemyTanks.size(); i++) {
+                    EnemyTank enemyTank = enemyTanks.get(i);
+                    Vector<Bullet> enemyTankBullets = enemyTank.getBullets();
+                    enemyTank.hitTank(enemyTankBullets, myTanks, bombs);
+                    if (MyTank.getLifeCount() > 0 && !myTank.isLive()) {
+                        myTank = new MyTank(100, 600, Tank.MOVE_UP, Tank.MY_TANK, Tank.TANK_DEFAULT_SPEED);
+                        myTanks.clear();
+                        myTanks.add(myTank);
                     }
                 }
+                //判断敌方的坦克发射的子弹有没有击中友军
+                for (int i = 0; i < enemyTanks.size(); i++) {
+                    EnemyTank enemyTank = enemyTanks.get(i);
+                    Vector<Bullet> enemyTankBullets = enemyTank.getBullets();
+                    enemyTank.hitTank(enemyTankBullets, friendlyTanks, bombs);
+                }
+                //判断场上敌方坦克数量，保证能有 5 个
+                if(enemyTanks.size() < 5){
+                    EnemyTank enemyTank = EnemyTank.newEnemyTank();
+                    enemyTanks.add(enemyTank);
+                    new Thread(enemyTank).start();
+                }
+                //判断场上友方坦克数量，保证能有 3 个
+                if(friendlyTanks.size() < 3 && FriendlyTank.getFriendlyTankCount() > 2){
+                    FriendlyTank friendlyTank = FriendlyTank.newFriendlyTank();
+                    friendlyTanks.add(friendlyTank);
+                    new Thread(friendlyTank).start();
+                }
+            } catch (ArrayIndexOutOfBoundsException e) {
+                //多线程之中很容易出现 ArrayIndexOutOfBoundsException 的错误
+                //但是我现在还不知道如何解决
+                //System.out.println("ArrayIndexOutOfBoundsException");
             }
-        } catch (ArrayIndexOutOfBoundsException e) {
-            //多线程之中很容易出现 ArrayIndexOutOfBoundsException 的错误
-            //但是我现在还不知道如何解决
-            //System.out.print("ArrayIndexOutOfBoundsException");
         }
     }
 
@@ -264,5 +250,50 @@ public class GameInterfacePanel extends JPanel implements KeyListener, Runnable 
         } else {
             bomb.setLive(false);
         }
+    }
+
+    public void showMyTankLifeCount(Graphics g) {
+        //展示我的坦克的生命数
+        g.setColor(new Color(0, 0, 0));
+        Font font = new Font("宋体", Font.BOLD, 20);
+        g.setFont(font);
+        g.drawString("您的坦克的剩余生命数:", 1010, 150);
+        //画坦克
+        drawTank(g, 1010, 170, Tank.MOVE_UP, Tank.MY_TANK);
+        //画数字
+        g.setColor(new Color(0, 0, 0));
+        font = new Font("宋体", Font.BOLD, 25);
+        g.setFont(font);
+        g.drawString(MyTank.getLifeCount() + "", 1070, 205);
+    }
+
+    public void showFriendlyTankCount(Graphics g) {
+        //展示我的坦克的生命数
+        g.setColor(new Color(0, 0, 0));
+        Font font = new Font("宋体", Font.BOLD, 20);
+        g.setFont(font);
+        g.drawString("友军坦克剩余数量:", 1010, 270);
+        //画坦克
+        drawTank(g, 1010, 290, Tank.MOVE_UP, Tank.FRIENDLY_TANK);
+        //画数字
+        g.setColor(new Color(0, 0, 0));
+        font = new Font("宋体", Font.BOLD, 25);
+        g.setFont(font);
+        g.drawString(FriendlyTank.getFriendlyTankCount() + "", 1070, 325);
+    }
+
+    public void showHitCount(Graphics g) {
+        //展示我的坦克的击杀数
+        g.setColor(new Color(0, 0, 0));
+        Font font = new Font("宋体", Font.BOLD, 20);
+        g.setFont(font);
+        g.drawString("累计击毁的敌方坦克:", 1010, 30);
+        //画坦克
+        drawTank(g, 1010, 50, Tank.MOVE_UP, Tank.ENEMY_TANK);
+        //画数字
+        g.setColor(new Color(0, 0, 0));
+        font = new Font("宋体", Font.BOLD, 25);
+        g.setFont(font);
+        g.drawString(MyTank.getHitCount() + "", 1070, 85);
     }
 }
